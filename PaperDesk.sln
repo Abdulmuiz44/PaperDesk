@@ -1,0 +1,45 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PaperDesk.App", "src\PaperDesk.App\PaperDesk.App.csproj", "{A1AF44EF-2D9A-4A3A-8C0A-B17CEAFB27D2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PaperDesk.Application", "src\PaperDesk.Application\PaperDesk.Application.csproj", "{F5DCC369-CB6E-4EB8-8D7E-8E8C733B550B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PaperDesk.Domain", "src\PaperDesk.Domain\PaperDesk.Domain.csproj", "{74431DFB-ADF2-42E5-A615-FE514D4E5D3D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PaperDesk.Infrastructure", "src\PaperDesk.Infrastructure\PaperDesk.Infrastructure.csproj", "{660F2C0A-BB64-4B4D-BEA5-6D5D0D85D59D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PaperDesk.Tests", "tests\PaperDesk.Tests\PaperDesk.Tests.csproj", "{1CBF6459-F84D-4113-A469-0F669396D9D8}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A1AF44EF-2D9A-4A3A-8C0A-B17CEAFB27D2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A1AF44EF-2D9A-4A3A-8C0A-B17CEAFB27D2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A1AF44EF-2D9A-4A3A-8C0A-B17CEAFB27D2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A1AF44EF-2D9A-4A3A-8C0A-B17CEAFB27D2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F5DCC369-CB6E-4EB8-8D7E-8E8C733B550B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F5DCC369-CB6E-4EB8-8D7E-8E8C733B550B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F5DCC369-CB6E-4EB8-8D7E-8E8C733B550B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F5DCC369-CB6E-4EB8-8D7E-8E8C733B550B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{74431DFB-ADF2-42E5-A615-FE514D4E5D3D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{74431DFB-ADF2-42E5-A615-FE514D4E5D3D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{74431DFB-ADF2-42E5-A615-FE514D4E5D3D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{74431DFB-ADF2-42E5-A615-FE514D4E5D3D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{660F2C0A-BB64-4B4D-BEA5-6D5D0D85D59D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{660F2C0A-BB64-4B4D-BEA5-6D5D0D85D59D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{660F2C0A-BB64-4B4D-BEA5-6D5D0D85D59D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{660F2C0A-BB64-4B4D-BEA5-6D5D0D85D59D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1CBF6459-F84D-4113-A469-0F669396D9D8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1CBF6459-F84D-4113-A469-0F669396D9D8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1CBF6459-F84D-4113-A469-0F669396D9D8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1CBF6459-F84D-4113-A469-0F669396D9D8}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
