@@ -29,6 +29,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IDuplicateDetectionService, DuplicateDetectionService>();
         services.AddSingleton<IActivityLogService, ActivityLogService>();
         services.AddSingleton<IDocumentRepository, SqliteDocumentRepository>();
+        services.AddSingleton<IRenameSuggestionRepository, SqliteRenameSuggestionRepository>();
         services.AddSingleton<IUnitOfWork, SqliteUnitOfWork>();
 
         return services;
