@@ -62,15 +62,29 @@
                 </StackPanel>
             </Border>
 
-            <UniformGrid Grid.Row="1" Columns="2" Rows="4" Margin="0,16,0,0">
-                <Border Style="{StaticResource SectionCardStyle}"><TextBlock Text="Dashboard" Style="{StaticResource SectionTitleStyle}"/></Border>
-                <Border Style="{StaticResource SectionCardStyle}"><TextBlock Text="Watched Folders" Style="{StaticResource SectionTitleStyle}"/></Border>
-                <Border Style="{StaticResource SectionCardStyle}"><TextBlock Text="Review Queue" Style="{StaticResource SectionTitleStyle}"/></Border>
-                <Border Style="{StaticResource SectionCardStyle}"><TextBlock Text="Search" Style="{StaticResource SectionTitleStyle}"/></Border>
-                <Border Style="{StaticResource SectionCardStyle}"><TextBlock Text="Duplicates" Style="{StaticResource SectionTitleStyle}"/></Border>
-                <Border Style="{StaticResource SectionCardStyle}"><TextBlock Text="Activity Log" Style="{StaticResource SectionTitleStyle}"/></Border>
-                <Border Style="{StaticResource SectionCardStyle}"><TextBlock Text="Settings" Style="{StaticResource SectionTitleStyle}"/></Border>
-            </UniformGrid>
+            <TabControl Grid.Row="1" Margin="0,16,0,0">
+                <TabItem Header="Dashboard">
+                    <TextBlock Margin="16" Text="Dashboard placeholder content (non-functional)." />
+                </TabItem>
+                <TabItem Header="Watched Folders">
+                    <TextBlock Margin="16" Text="Watched Folders placeholder content (non-functional)." />
+                </TabItem>
+                <TabItem Header="Review Queue">
+                    <TextBlock Margin="16" Text="Review Queue placeholder content (non-functional)." />
+                </TabItem>
+                <TabItem Header="Search">
+                    <TextBlock Margin="16" Text="Search placeholder content (non-functional)." />
+                </TabItem>
+                <TabItem Header="Duplicates">
+                    <TextBlock Margin="16" Text="Duplicates placeholder content (non-functional)." />
+                </TabItem>
+                <TabItem Header="Activity Log">
+                    <TextBlock Margin="16" Text="Activity Log placeholder content (non-functional)." />
+                </TabItem>
+                <TabItem Header="Settings">
+                    <TextBlock Margin="16" Text="Settings placeholder content (non-functional)." />
+                </TabItem>
+            </TabControl>
         </Grid>
     </Grid>
 </Window>
