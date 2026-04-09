@@ -5,33 +5,35 @@ PaperDesk is a privacy-first, local-first Windows desktop app for document workf
 It is designed to help users keep operational documents organized by watching local folders, extracting content, suggesting safe rename/sort actions, indexing documents for offline search, and surfacing duplicates for review.
 
 ## Current Status
-This repository currently contains the **initial architecture scaffold** for V1.
+This repository is now in an **early first vertical slice** state for V1 (beyond pure scaffold).
 
-Implemented in scaffold form:
-- .NET 8 solution and project structure
-- WPF shell application with a clean navigation-ready layout
-- Domain entities and enums for core workflow concepts
-- Application interfaces for OCR, watcher, renaming, indexing, duplicates, logging, and persistence
-- Infrastructure placeholders for SQLite bootstrap, configuration, logging, and service adapters
-- Unit test project with foundational tests
+Implemented today:
+- .NET 8 solution and project boundaries (App / Application / Domain / Infrastructure / Tests)
+- WPF shell that boots with DI and navigation-ready primary layout
+- Core domain model (entities/enums) and safety policy defaults
+- Application contracts and starter use-case wiring
+- SQLite startup foundation (path resolution + DB open + WAL pragma initialization)
+- Infrastructure service registrations with placeholder adapters where behavior is intentionally deferred
+- Unit tests for foundational domain/application rules
 
-Not implemented yet:
-- Real OCR engine integration
-- Real file system watcher behavior
-- Real indexing, duplicate detection, and rename execution logic
-- Full database schema/migrations
-- Installer packaging and production hardening
+Deferred / intentionally placeholder:
+- Production OCR pipeline and extraction quality tuning
+- Real `FileSystemWatcher` event ingestion pipeline
+- Persistent CRUD for document repository and unit-of-work transactions
+- Full-text indexing, duplicate detection heuristics, and rename execution engine
+- Full database schema evolution/migrations and seeded demo workflows
+- Installer packaging, diagnostics hardening, and operational polish
 
 ## Solution Structure
 ```text
 PaperDesk.sln
 src/
   PaperDesk.App              # WPF app shell, DI bootstrap, config loading
-  PaperDesk.Application      # Abstractions, DTOs, use-case scaffolding
+  PaperDesk.Application      # Abstractions, DTOs, use-case wiring
   PaperDesk.Domain           # Core entities, enums, safety policies
-  PaperDesk.Infrastructure   # SQLite foundation + integration placeholders
+  PaperDesk.Infrastructure   # SQLite bootstrap + integration adapters (mixed concrete/placeholder)
 tests/
-  PaperDesk.Tests            # Unit test scaffold
+  PaperDesk.Tests            # Foundational unit tests
 ```
 
 ## Run Locally
