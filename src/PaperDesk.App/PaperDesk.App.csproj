@@ -9,7 +9,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\PaperDesk.Application\PaperDesk.Application.csproj" />
-    <ProjectReference Include="..\PaperDesk.Domain\PaperDesk.Domain.csproj" />
     <ProjectReference Include="..\PaperDesk.Infrastructure\PaperDesk.Infrastructure.csproj" />
   </ItemGroup>
 
