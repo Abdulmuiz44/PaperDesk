@@ -1,5 +1,16 @@
 # PaperDesk V1 Execution Plan
 
+## Project Status (Repository Reality Check)
+PaperDesk has moved past a pure scaffold into an **initial vertical slice foundation**:
+- App shell, dependency wiring, and startup flow are in place.
+- Domain model and safety defaults exist and are test-covered.
+- SQLite bootstrap is implemented at initialization level (database open + baseline pragma).
+
+The majority of end-user automation behavior described in this plan remains **planned work**:
+- OCR extraction pipeline, real watcher-driven ingestion, repository persistence, indexing, duplicate workflows, and rename execution are still deferred or represented by placeholders.
+
+Use this document as the target-state roadmap, not a claim that all sections below are already delivered.
+
 ## 1) Product Vision
 PaperDesk is a **local-first, Windows-native desktop utility** that automates document organization for people who deal with high volumes of operational files (invoices, receipts, contracts, scans, statements, and client docs).
 
