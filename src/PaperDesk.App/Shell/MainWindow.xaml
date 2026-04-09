@@ -1,0 +1,76 @@
+<Window x:Class="PaperDesk.App.Shell.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:shell="clr-namespace:PaperDesk.App.Shell"
+        mc:Ignorable="d"
+        Title="PaperDesk"
+        Width="1200"
+        Height="760"
+        MinWidth="960"
+        MinHeight="600"
+        Background="{DynamicResource SurfaceBrush}">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="220" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <Border Grid.Column="0" Background="{DynamicResource SidebarBrush}">
+            <DockPanel Margin="16">
+                <StackPanel DockPanel.Dock="Top" Margin="0,0,0,16">
+                    <TextBlock Text="PaperDesk"
+                               Foreground="White"
+                               FontSize="24"
+                               FontWeight="SemiBold" />
+                    <TextBlock Text="Local document workflow"
+                               Foreground="#CCFFFFFF"
+                               FontSize="12"
+                               Margin="0,4,0,0" />
+                </StackPanel>
+
+                <ListBox ItemsSource="{Binding NavigationItems}"
+                         Background="Transparent"
+                         Foreground="White"
+                         BorderThickness="0"
+                         FontSize="14"
+                         SelectedIndex="0"
+                         Margin="0,8,0,0" />
+            </DockPanel>
+        </Border>
+
+        <Grid Grid.Column="1" Margin="20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <Border Background="White" Padding="16" CornerRadius="8" BorderBrush="#FFE5E7EB" BorderThickness="1">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="Scaffold Status"
+                               FontWeight="SemiBold"
+                               FontSize="16" />
+                    <Border Margin="12,0,0,0"
+                            Background="#FFEFF6FF"
+                            CornerRadius="10"
+                            Padding="8,3">
+                        <TextBlock Text="Foundation Ready"
+                                   Foreground="{DynamicResource AccentBrush}"
+                                   FontSize="12" />
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <UniformGrid Grid.Row="1" Columns="2" Rows="4" Margin="0,16,0,0">
+                <Border Style="{StaticResource SectionCardStyle}"><TextBlock Text="Dashboard" Style="{StaticResource SectionTitleStyle}"/></Border>
+                <Border Style="{StaticResource SectionCardStyle}"><TextBlock Text="Watched Folders" Style="{StaticResource SectionTitleStyle}"/></Border>
+                <Border Style="{StaticResource SectionCardStyle}"><TextBlock Text="Review Queue" Style="{StaticResource SectionTitleStyle}"/></Border>
+                <Border Style="{StaticResource SectionCardStyle}"><TextBlock Text="Search" Style="{StaticResource SectionTitleStyle}"/></Border>
+                <Border Style="{StaticResource SectionCardStyle}"><TextBlock Text="Duplicates" Style="{StaticResource SectionTitleStyle}"/></Border>
+                <Border Style="{StaticResource SectionCardStyle}"><TextBlock Text="Activity Log" Style="{StaticResource SectionTitleStyle}"/></Border>
+                <Border Style="{StaticResource SectionCardStyle}"><TextBlock Text="Settings" Style="{StaticResource SectionTitleStyle}"/></Border>
+            </UniformGrid>
+        </Grid>
+    </Grid>
+</Window>
