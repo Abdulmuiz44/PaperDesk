@@ -17,12 +17,14 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IDisposable
     private readonly IWatchedFolderValidator watchedFolderValidator;
     private readonly IActivityLog activityLog;
     private readonly IFileProcessingQueue fileProcessingQueue;
+    private readonly IDocumentIndexService documentIndexService;
     private readonly DocumentIngestionCoordinator ingestionCoordinator;
     private readonly DispatcherTimer refreshTimer;
     private readonly SemaphoreSlim tickGate = new(1, 1);
     private bool isDisposed;
     private bool isWatching;
     private string watchedFolderInput = string.Empty;
+    private string searchQuery = string.Empty;
     private string statusMessage = "Ready";
     private WatchedFolder? selectedWatchedFolder;
 
@@ -31,12 +33,14 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IDisposable
         IWatchedFolderValidator watchedFolderValidator,
         IActivityLog activityLog,
         IFileProcessingQueue fileProcessingQueue,
+        IDocumentIndexService documentIndexService,
         DocumentIngestionCoordinator ingestionCoordinator)
     {
         this.folderWatcherService = folderWatcherService;
         this.watchedFolderValidator = watchedFolderValidator;
         this.activityLog = activityLog;
         this.fileProcessingQueue = fileProcessingQueue;
+        this.documentIndexService = documentIndexService;
         this.ingestionCoordinator = ingestionCoordinator;
 
         NavigationItems =
@@ -74,6 +78,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IDisposable
     public ObservableCollection<RenameMovePreview> PendingPreviews { get; } = [];
 
     public ObservableCollection<ActivityEventItemViewModel> ActivityEvents { get; } = [];
+    public ObservableCollection<SearchResultItemViewModel> SearchResults { get; } = [];
 
     public string WatchedFolderInput
     {
@@ -85,6 +90,12 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IDisposable
     {
         get => statusMessage;
         private set => SetProperty(ref statusMessage, value);
+    }
+
+    public string SearchQuery
+    {
+        get => searchQuery;
+        set => SetProperty(ref searchQuery, value);
     }
 
     public bool IsWatching
@@ -193,6 +204,31 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IDisposable
         StatusMessage = "Watching stopped.";
     }
 
+    public async Task SearchAsync(CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(SearchQuery))
+        {
+            SearchResults.Clear();
+            StatusMessage = "Enter a keyword to search indexed OCR text.";
+            return;
+        }
+
+        var results = await documentIndexService.SearchAsync(SearchQuery, cancellationToken);
+        SearchResults.Clear();
+        foreach (var result in results)
+        {
+            SearchResults.Add(new SearchResultItemViewModel(
+                result.Id,
+                result.OriginalPath,
+                result.DocumentType.ToString(),
+                result.OcrConfidence.ToString(),
+                result.LastProcessedUtc ?? result.DiscoveredUtc,
+                BuildPreview(result.ExtractedText)));
+        }
+
+        StatusMessage = $"Search returned {SearchResults.Count} result(s).";
+    }
+
     public void Dispose()
     {
         if (isDisposed)
@@ -275,6 +311,17 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IDisposable
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+
+    private static string BuildPreview(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return string.Empty;
+        }
+
+        var singleLine = string.Join(' ', text.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+        return singleLine.Length <= 160 ? singleLine : $"{singleLine[..157]}...";
+    }
 }
 
 public sealed record ActivityEventItemViewModel(
@@ -282,3 +329,11 @@ public sealed record ActivityEventItemViewModel(
     ActivityType ActivityType,
     string Message,
     string? Path);
+
+public sealed record SearchResultItemViewModel(
+    Guid Id,
+    string OriginalPath,
+    string DocumentType,
+    string OcrConfidence,
+    DateTimeOffset ProcessedUtc,
+    string Preview);

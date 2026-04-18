@@ -162,7 +162,47 @@
                     </Grid>
                 </TabItem>
                 <TabItem Header="Search">
-                    <TextBlock Margin="16" Text="Search indexing is planned for Phase 2." />
+                    <Grid Margin="16">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0"
+                                     Margin="0,0,8,0"
+                                     Padding="8,6"
+                                     Text="{Binding SearchQuery, UpdateSourceTrigger=PropertyChanged}" />
+                            <Button Grid.Column="1"
+                                    Padding="12,6"
+                                    Click="SearchClick"
+                                    Content="Search" />
+                        </Grid>
+
+                        <ListView Grid.Row="1"
+                                  Margin="0,12,0,0"
+                                  ItemsSource="{Binding SearchResults}">
+                            <ListView.View>
+                                <GridView>
+                                    <GridViewColumn Width="280" Header="Path" DisplayMemberBinding="{Binding OriginalPath}" />
+                                    <GridViewColumn Width="120" Header="Type" DisplayMemberBinding="{Binding DocumentType}" />
+                                    <GridViewColumn Width="120" Header="Confidence" DisplayMemberBinding="{Binding OcrConfidence}" />
+                                    <GridViewColumn Width="170" Header="Processed">
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding ProcessedUtc, StringFormat={}{0:yyyy-MM-dd HH:mm:ss}}" />
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Width="260" Header="Preview" DisplayMemberBinding="{Binding Preview}" />
+                                </GridView>
+                            </ListView.View>
+                        </ListView>
+                    </Grid>
                 </TabItem>
                 <TabItem Header="Duplicates">
                     <TextBlock Margin="16" Text="Duplicate handling is planned for Phase 3." />

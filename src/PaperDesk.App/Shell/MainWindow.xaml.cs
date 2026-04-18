@@ -40,6 +40,9 @@ public partial class MainWindow : Window
     private async void StopWatchingClick(object sender, RoutedEventArgs e)
         => await ViewModel.StopWatchingAsync(CancellationToken.None);
 
+    private async void SearchClick(object sender, RoutedEventArgs e)
+        => await ViewModel.SearchAsync(CancellationToken.None);
+
     protected override async void OnClosed(EventArgs e)
     {
         await ViewModel.StopWatchingAsync(CancellationToken.None);

@@ -1,4 +1,5 @@
 using PaperDesk.Application.Abstractions;
+using PaperDesk.Domain.Entities;
 using PaperDesk.Domain.Enums;
 using PaperDesk.Domain.ValueObjects;
 
@@ -8,6 +9,9 @@ public sealed class DocumentIngestionCoordinator(
     IFileProcessingQueue queue,
     IDocumentMetadataExtractor metadataExtractor,
     IRenameSuggestionService renameSuggestionService,
+    IOcrService ocrService,
+    IDocumentRepository documentRepository,
+    IDocumentIndexService documentIndexService,
     IActivityLog activityLog)
 {
     public async Task<RenameMovePreview?> ProcessNextAsync(CancellationToken cancellationToken)
@@ -25,6 +29,26 @@ public sealed class DocumentIngestionCoordinator(
                 ActivityType.FileAnalyzed,
                 $"Analyzed {metadata.FileName}",
                 metadata.FullPath), cancellationToken);
+
+            var ocrResult = await ocrService.ExtractTextAsync(metadata.FullPath, cancellationToken);
+            await activityLog.WriteAsync(new ActivityEvent(
+                ActivityType.OcrCompleted,
+                $"OCR completed for {metadata.FileName}",
+                metadata.FullPath), cancellationToken);
+
+            var documentRecord = new DocumentRecord
+            {
+                OriginalPath = metadata.FullPath,
+                CurrentPath = metadata.FullPath,
+                DocumentType = DocumentType.Unknown,
+                ExtractedText = ocrResult.ExtractedText,
+                OcrConfidence = ocrResult.Confidence,
+                Status = ProcessingStatus.NeedsReview,
+                LastProcessedUtc = DateTimeOffset.UtcNow
+            };
+
+            await documentRepository.AddAsync(documentRecord, cancellationToken);
+            await documentIndexService.IndexAsync(documentRecord, cancellationToken);
 
             var preview = await renameSuggestionService.BuildPreviewAsync(metadata, null, cancellationToken);
             await activityLog.WriteAsync(new ActivityEvent(
