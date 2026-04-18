@@ -3,7 +3,6 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:shell="clr-namespace:PaperDesk.App.Shell"
         mc:Ignorable="d"
         Title="PaperDesk"
         Width="1200"
@@ -55,7 +54,7 @@
                             Background="#FFEFF6FF"
                             CornerRadius="10"
                             Padding="8,3">
-                        <TextBlock Text="Foundation Ready"
+                        <TextBlock Text="{Binding PhaseStatus}"
                                    Foreground="{DynamicResource AccentBrush}"
                                    FontSize="12" />
                     </Border>
@@ -64,25 +63,140 @@
 
             <TabControl Grid.Row="1" Margin="0,16,0,0">
                 <TabItem Header="Dashboard">
-                    <TextBlock Margin="16" Text="Dashboard placeholder content (non-functional)." />
+                    <StackPanel Margin="16">
+                        <TextBlock Text="Phase 1 Foundation" FontSize="20" FontWeight="SemiBold" />
+                        <TextBlock Margin="0,8,0,0" Text="Folder watching, queueing, metadata extraction, activity logging, and safe preview generation are wired in services." TextWrapping="Wrap" />
+                    </StackPanel>
                 </TabItem>
                 <TabItem Header="Watched Folders">
-                    <TextBlock Margin="16" Text="Watched Folders placeholder content (non-functional)." />
+                    <Grid Margin="16">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Text="Watch Configuration" FontSize="18" FontWeight="SemiBold" />
+
+                        <Grid Grid.Row="1" Margin="0,12,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0"
+                                     Margin="0,0,8,0"
+                                     Padding="8,6"
+                                     Text="{Binding WatchedFolderInput, UpdateSourceTrigger=PropertyChanged}" />
+                            <Button Grid.Column="1"
+                                    Margin="0,0,8,0"
+                                    Padding="12,6"
+                                    Click="BrowseFolderClick"
+                                    Content="Browse" />
+                            <Button Grid.Column="2"
+                                    Padding="12,6"
+                                    Click="AddFolderClick"
+                                    Content="Add" />
+                        </Grid>
+
+                        <ListView Grid.Row="2"
+                                  Margin="0,12,0,0"
+                                  ItemsSource="{Binding WatchedFolders}"
+                                  SelectedItem="{Binding SelectedWatchedFolder, Mode=TwoWay}">
+                            <ListView.View>
+                                <GridView>
+                                    <GridViewColumn Width="470" Header="Folder">
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Path}" TextTrimming="CharacterEllipsis" />
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Width="110" Header="Recursive">
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding IsRecursive}" />
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Width="90" Header="Enabled">
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding IsEnabled}" />
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                </GridView>
+                            </ListView.View>
+                        </ListView>
+
+                        <StackPanel Grid.Row="3" Margin="0,12,0,0" Orientation="Horizontal">
+                            <Button Padding="12,6" Margin="0,0,8,0" Click="RemoveFolderClick" Content="Remove Selected" />
+                            <Button Padding="12,6" Margin="0,0,8,0" Click="StartWatchingClick" Content="Start Watching" />
+                            <Button Padding="12,6" Click="StopWatchingClick" Content="Stop Watching" />
+                        </StackPanel>
+                    </Grid>
                 </TabItem>
                 <TabItem Header="Review Queue">
-                    <TextBlock Margin="16" Text="Review Queue placeholder content (non-functional)." />
+                    <Grid Margin="16">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="Pending rename/move previews" FontSize="18" FontWeight="SemiBold" />
+                        <TextBlock Grid.Row="1"
+                                   Margin="0,8,0,0"
+                                   Text="{Binding QueueCount, StringFormat=Queue items: {0}}"
+                                   Foreground="#FF4B5563" />
+                        <ListView Grid.Row="2" Margin="0,12,0,0" ItemsSource="{Binding PendingPreviews}">
+                            <ListView.View>
+                                <GridView>
+                                    <GridViewColumn Width="180" Header="Proposed Name" DisplayMemberBinding="{Binding ProposedFileName}" />
+                                    <GridViewColumn Width="500" Header="Proposed Path" DisplayMemberBinding="{Binding ProposedPath}" />
+                                    <GridViewColumn Width="130" Header="Confidence" DisplayMemberBinding="{Binding Confidence}" />
+                                </GridView>
+                            </ListView.View>
+                        </ListView>
+                    </Grid>
                 </TabItem>
                 <TabItem Header="Search">
-                    <TextBlock Margin="16" Text="Search placeholder content (non-functional)." />
+                    <TextBlock Margin="16" Text="Search indexing is planned for Phase 2." />
                 </TabItem>
                 <TabItem Header="Duplicates">
-                    <TextBlock Margin="16" Text="Duplicates placeholder content (non-functional)." />
+                    <TextBlock Margin="16" Text="Duplicate handling is planned for Phase 3." />
                 </TabItem>
                 <TabItem Header="Activity Log">
-                    <TextBlock Margin="16" Text="Activity Log placeholder content (non-functional)." />
+                    <Grid Margin="16">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="Live processing events" FontSize="18" FontWeight="SemiBold" />
+                        <ListView Grid.Row="1" Margin="0,12,0,0" ItemsSource="{Binding ActivityEvents}">
+                            <ListView.View>
+                                <GridView>
+                                    <GridViewColumn Width="170" Header="Time">
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding OccurredUtc, StringFormat={}{0:yyyy-MM-dd HH:mm:ss}}" />
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Width="140" Header="Type" DisplayMemberBinding="{Binding ActivityType}" />
+                                    <GridViewColumn Width="330" Header="Message" DisplayMemberBinding="{Binding Message}" />
+                                    <GridViewColumn Width="220" Header="Path" DisplayMemberBinding="{Binding Path}" />
+                                </GridView>
+                            </ListView.View>
+                        </ListView>
+                    </Grid>
                 </TabItem>
                 <TabItem Header="Settings">
-                    <TextBlock Margin="16" Text="Settings placeholder content (non-functional)." />
+                    <StackPanel Margin="16">
+                        <TextBlock Text="Runtime status" FontSize="18" FontWeight="SemiBold" />
+                        <TextBlock Margin="0,10,0,0" Text="{Binding StatusMessage}" TextWrapping="Wrap" />
+                    </StackPanel>
                 </TabItem>
             </TabControl>
         </Grid>

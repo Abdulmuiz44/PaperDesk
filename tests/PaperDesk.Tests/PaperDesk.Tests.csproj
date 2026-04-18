@@ -22,5 +22,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\PaperDesk.Application\PaperDesk.Application.csproj" />
     <ProjectReference Include="..\..\src\PaperDesk.Domain\PaperDesk.Domain.csproj" />
+    <ProjectReference Include="..\..\src\PaperDesk.Infrastructure\PaperDesk.Infrastructure.csproj" />
   </ItemGroup>
 </Project>
