@@ -18,6 +18,8 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IDisposable
     private readonly IActivityLog activityLog;
     private readonly IFileProcessingQueue fileProcessingQueue;
     private readonly IDocumentIndexService documentIndexService;
+    private readonly IDocumentRepository documentRepository;
+    private readonly IRenameSuggestionRepository renameSuggestionRepository;
     private readonly DocumentIngestionCoordinator ingestionCoordinator;
     private readonly DispatcherTimer refreshTimer;
     private readonly SemaphoreSlim tickGate = new(1, 1);
@@ -27,6 +29,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IDisposable
     private string searchQuery = string.Empty;
     private string statusMessage = "Ready";
     private WatchedFolder? selectedWatchedFolder;
+    private ReviewSuggestionItemViewModel? selectedReviewSuggestion;
 
     public MainWindowViewModel(
         IFolderWatcherService folderWatcherService,
@@ -34,6 +37,8 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IDisposable
         IActivityLog activityLog,
         IFileProcessingQueue fileProcessingQueue,
         IDocumentIndexService documentIndexService,
+        IDocumentRepository documentRepository,
+        IRenameSuggestionRepository renameSuggestionRepository,
         DocumentIngestionCoordinator ingestionCoordinator)
     {
         this.folderWatcherService = folderWatcherService;
@@ -41,6 +46,8 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IDisposable
         this.activityLog = activityLog;
         this.fileProcessingQueue = fileProcessingQueue;
         this.documentIndexService = documentIndexService;
+        this.documentRepository = documentRepository;
+        this.renameSuggestionRepository = renameSuggestionRepository;
         this.ingestionCoordinator = ingestionCoordinator;
 
         NavigationItems =
@@ -56,7 +63,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IDisposable
 
         refreshTimer = new DispatcherTimer
         {
-            Interval = TimeSpan.FromMilliseconds(400)
+            Interval = TimeSpan.FromMilliseconds(500)
         };
         refreshTimer.Tick += OnRefreshTick;
         refreshTimer.Start();
@@ -69,7 +76,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IDisposable
     public string PhaseStatus
         => isWatching
             ? "Watching folders and processing queue"
-            : "Phase 1 pipeline foundation ready";
+            : "Workflow ready";
 
     public IReadOnlyCollection<string> NavigationItems { get; }
 
@@ -77,7 +84,10 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IDisposable
 
     public ObservableCollection<RenameMovePreview> PendingPreviews { get; } = [];
 
+    public ObservableCollection<ReviewSuggestionItemViewModel> ReviewSuggestions { get; } = [];
+
     public ObservableCollection<ActivityEventItemViewModel> ActivityEvents { get; } = [];
+
     public ObservableCollection<SearchResultItemViewModel> SearchResults { get; } = [];
 
     public string WatchedFolderInput
@@ -116,6 +126,12 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IDisposable
         set => SetProperty(ref selectedWatchedFolder, value);
     }
 
+    public ReviewSuggestionItemViewModel? SelectedReviewSuggestion
+    {
+        get => selectedReviewSuggestion;
+        set => SetProperty(ref selectedReviewSuggestion, value);
+    }
+
     public int QueueCount => fileProcessingQueue.Snapshot().Count;
 
     public async Task<bool> AddWatchedFolderAsync(string folderPath, CancellationToken cancellationToken)
@@ -136,7 +152,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IDisposable
         var candidate = new WatchedFolder
         {
             Path = normalizedPath,
-            IncludedExtensions = [".pdf", ".jpg", ".jpeg", ".png", ".tif", ".tiff"]
+            IncludedExtensions = [".pdf", ".jpg", ".jpeg", ".png", ".tif", ".tiff", ".txt"]
         };
         var validation = watchedFolderValidator.Validate(candidate);
         if (!validation.IsValid)
@@ -229,6 +245,144 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IDisposable
         StatusMessage = $"Search returned {SearchResults.Count} result(s).";
     }
 
+    public async Task RefreshReviewQueueAsync(CancellationToken cancellationToken)
+    {
+        var suggestions = await renameSuggestionRepository.ListForReviewQueueAsync(cancellationToken);
+        ReviewSuggestions.Clear();
+        foreach (var suggestion in suggestions)
+        {
+            ReviewSuggestions.Add(new ReviewSuggestionItemViewModel(
+                suggestion.Id,
+                suggestion.DocumentId,
+                suggestion.ProposedFileName,
+                suggestion.ProposedDestinationDirectory ?? string.Empty,
+                suggestion.Confidence,
+                suggestion.Reason));
+        }
+    }
+
+    public async Task<bool> ApplySelectedSuggestionAsync(CancellationToken cancellationToken)
+    {
+        if (SelectedReviewSuggestion is null)
+        {
+            StatusMessage = "Select a suggestion to apply.";
+            return false;
+        }
+
+        var suggestion = SelectedReviewSuggestion;
+        if (string.IsNullOrWhiteSpace(suggestion.ProposedFileName))
+        {
+            StatusMessage = "Proposed filename cannot be empty.";
+            return false;
+        }
+
+        var document = await documentRepository.GetByIdAsync(suggestion.DocumentId, cancellationToken);
+        if (document is null)
+        {
+            StatusMessage = "Document was not found.";
+            return false;
+        }
+
+        var sourcePath = Path.GetFullPath(document.CurrentPath ?? document.OriginalPath);
+        if (!File.Exists(sourcePath))
+        {
+            StatusMessage = $"Source file missing: {sourcePath}";
+            return false;
+        }
+
+        var destinationDirectory = string.IsNullOrWhiteSpace(suggestion.ProposedDestinationDirectory)
+            ? Path.GetDirectoryName(sourcePath) ?? Environment.CurrentDirectory
+            : Path.GetFullPath(suggestion.ProposedDestinationDirectory);
+        Directory.CreateDirectory(destinationDirectory);
+
+        var safeName = SanitizeFileName(suggestion.ProposedFileName);
+        var extension = Path.GetExtension(sourcePath);
+        if (string.IsNullOrWhiteSpace(Path.GetExtension(safeName)))
+        {
+            safeName = $"{safeName}{extension}";
+        }
+
+        var destinationPath = EnsureUniquePath(destinationDirectory, safeName, sourcePath);
+        if (!string.Equals(sourcePath, destinationPath, StringComparison.OrdinalIgnoreCase))
+        {
+            File.Move(sourcePath, destinationPath);
+        }
+
+        document.CurrentPath = destinationPath;
+        document.Status = ProcessingStatus.Completed;
+        document.LastProcessedUtc = DateTimeOffset.UtcNow;
+        await documentRepository.UpdateAsync(document, cancellationToken);
+
+        var persisted = new RenameSuggestion
+        {
+            Id = suggestion.Id,
+            DocumentId = suggestion.DocumentId,
+            ProposedFileName = Path.GetFileName(destinationPath),
+            ProposedDestinationDirectory = Path.GetDirectoryName(destinationPath),
+            Confidence = suggestion.Confidence,
+            Reason = suggestion.Reason,
+            IsApproved = true,
+            IsSkipped = false
+        };
+        await renameSuggestionRepository.UpdateAsync(persisted, cancellationToken);
+
+        await activityLog.WriteAsync(new ActivityEvent(
+            ActivityType.ActionApproved,
+            $"Approved rename suggestion for {Path.GetFileName(sourcePath)}",
+            sourcePath,
+            suggestion.DocumentId), cancellationToken);
+        await activityLog.WriteAsync(new ActivityEvent(
+            ActivityType.ActionApplied,
+            $"Applied move/rename to {destinationPath}",
+            destinationPath,
+            suggestion.DocumentId), cancellationToken);
+
+        ReviewSuggestions.Remove(suggestion);
+        StatusMessage = "Suggestion applied.";
+        return true;
+    }
+
+    public async Task SkipSelectedSuggestionAsync(CancellationToken cancellationToken)
+    {
+        if (SelectedReviewSuggestion is null)
+        {
+            StatusMessage = "Select a suggestion to skip.";
+            return;
+        }
+
+        var suggestion = SelectedReviewSuggestion;
+        var persisted = new RenameSuggestion
+        {
+            Id = suggestion.Id,
+            DocumentId = suggestion.DocumentId,
+            ProposedFileName = suggestion.ProposedFileName,
+            ProposedDestinationDirectory = suggestion.ProposedDestinationDirectory,
+            Confidence = suggestion.Confidence,
+            Reason = suggestion.Reason,
+            IsApproved = false,
+            IsSkipped = true
+        };
+
+        await renameSuggestionRepository.UpdateAsync(persisted, cancellationToken);
+
+        var document = await documentRepository.GetByIdAsync(suggestion.DocumentId, cancellationToken);
+        if (document is not null)
+        {
+            document.Status = ProcessingStatus.Skipped;
+            document.LastProcessedUtc = DateTimeOffset.UtcNow;
+            await documentRepository.UpdateAsync(document, cancellationToken);
+        }
+
+        await activityLog.WriteAsync(new ActivityEvent(
+            ActivityType.FileSkipped,
+            $"Skipped suggestion for document {suggestion.DocumentId}",
+            null,
+            suggestion.DocumentId), cancellationToken);
+
+        ReviewSuggestions.Remove(suggestion);
+        StatusMessage = "Suggestion skipped.";
+    }
+
     public void Dispose()
     {
         if (isDisposed)
@@ -251,7 +405,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IDisposable
 
         try
         {
-            for (var index = 0; index < 4; index++)
+            for (var index = 0; index < 3; index++)
             {
                 var preview = await ingestionCoordinator.ProcessNextAsync(CancellationToken.None);
                 if (preview is null)
@@ -269,6 +423,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IDisposable
                 }
             }
 
+            await RefreshReviewQueueAsync(CancellationToken.None);
             RefreshActivityView();
             OnPropertyChanged(nameof(QueueCount));
         }
@@ -321,6 +476,92 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged, IDisposable
 
         var singleLine = string.Join(' ', text.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
         return singleLine.Length <= 160 ? singleLine : $"{singleLine[..157]}...";
+    }
+
+    private static string SanitizeFileName(string value)
+    {
+        var invalidChars = Path.GetInvalidFileNameChars();
+        var sanitized = new string(value.Select(character => invalidChars.Contains(character) ? '-' : character).ToArray());
+        return string.Join(' ', sanitized.Split(' ', StringSplitOptions.RemoveEmptyEntries)).Trim();
+    }
+
+    private static string EnsureUniquePath(string directory, string fileName, string sourcePath)
+    {
+        var baseName = Path.GetFileNameWithoutExtension(fileName);
+        var extension = Path.GetExtension(fileName);
+        var counter = 0;
+        while (true)
+        {
+            var candidate = counter == 0
+                ? Path.Combine(directory, fileName)
+                : Path.Combine(directory, $"{baseName} ({counter + 1}){extension}");
+
+            if (!File.Exists(candidate) || string.Equals(Path.GetFullPath(candidate), Path.GetFullPath(sourcePath), StringComparison.OrdinalIgnoreCase))
+            {
+                return candidate;
+            }
+
+            counter++;
+        }
+    }
+}
+
+public sealed class ReviewSuggestionItemViewModel : INotifyPropertyChanged
+{
+    private string proposedFileName;
+    private string proposedDestinationDirectory;
+
+    public ReviewSuggestionItemViewModel(
+        Guid id,
+        Guid documentId,
+        string proposedFileName,
+        string proposedDestinationDirectory,
+        ConfidenceLevel confidence,
+        string reason)
+    {
+        Id = id;
+        DocumentId = documentId;
+        this.proposedFileName = proposedFileName;
+        this.proposedDestinationDirectory = proposedDestinationDirectory;
+        Confidence = confidence;
+        Reason = reason;
+    }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    public Guid Id { get; }
+    public Guid DocumentId { get; }
+    public ConfidenceLevel Confidence { get; }
+    public string Reason { get; }
+
+    public string ProposedFileName
+    {
+        get => proposedFileName;
+        set
+        {
+            if (proposedFileName == value)
+            {
+                return;
+            }
+
+            proposedFileName = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ProposedFileName)));
+        }
+    }
+
+    public string ProposedDestinationDirectory
+    {
+        get => proposedDestinationDirectory;
+        set
+        {
+            if (proposedDestinationDirectory == value)
+            {
+                return;
+            }
+
+            proposedDestinationDirectory = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(ProposedDestinationDirectory)));
+        }
     }
 }
 

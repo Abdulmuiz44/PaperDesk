@@ -43,6 +43,29 @@ public partial class MainWindow : Window
     private async void SearchClick(object sender, RoutedEventArgs e)
         => await ViewModel.SearchAsync(CancellationToken.None);
 
+    private async void RefreshReviewQueueClick(object sender, RoutedEventArgs e)
+        => await ViewModel.RefreshReviewQueueAsync(CancellationToken.None);
+
+    private async void ApproveSelectedClick(object sender, RoutedEventArgs e)
+    {
+        var result = MessageBox.Show(
+            "Apply the selected rename/move suggestion now?",
+            "Confirm Apply",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning,
+            MessageBoxResult.No);
+
+        if (result != MessageBoxResult.Yes)
+        {
+            return;
+        }
+
+        await ViewModel.ApplySelectedSuggestionAsync(CancellationToken.None);
+    }
+
+    private async void SkipSelectedClick(object sender, RoutedEventArgs e)
+        => await ViewModel.SkipSelectedSuggestionAsync(CancellationToken.None);
+
     protected override async void OnClosed(EventArgs e)
     {
         await ViewModel.StopWatchingAsync(CancellationToken.None);

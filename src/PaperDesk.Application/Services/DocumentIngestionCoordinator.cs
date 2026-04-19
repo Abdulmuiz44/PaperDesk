@@ -9,9 +9,12 @@ public sealed class DocumentIngestionCoordinator(
     IFileProcessingQueue queue,
     IDocumentMetadataExtractor metadataExtractor,
     IRenameSuggestionService renameSuggestionService,
+    IRenamingService renamingService,
+    IDocumentClassifier documentClassifier,
     IOcrService ocrService,
     IDocumentRepository documentRepository,
     IDocumentIndexService documentIndexService,
+    IRenameSuggestionRepository renameSuggestionRepository,
     IActivityLog activityLog)
 {
     public async Task<RenameMovePreview?> ProcessNextAsync(CancellationToken cancellationToken)
@@ -47,13 +50,29 @@ public sealed class DocumentIngestionCoordinator(
                 LastProcessedUtc = DateTimeOffset.UtcNow
             };
 
+            documentRecord.DocumentType = await documentClassifier.ClassifyAsync(documentRecord, cancellationToken);
+
             await documentRepository.AddAsync(documentRecord, cancellationToken);
             await documentIndexService.IndexAsync(documentRecord, cancellationToken);
 
             var preview = await renameSuggestionService.BuildPreviewAsync(metadata, null, cancellationToken);
+            var plan = await renamingService.BuildSuggestionAsync(documentRecord, cancellationToken);
+            var suggestion = new RenameSuggestion
+            {
+                DocumentId = documentRecord.Id,
+                ProposedFileName = plan.ProposedFileName,
+                ProposedDestinationDirectory = plan.ProposedDirectory,
+                Confidence = plan.Confidence,
+                Reason = plan.Reason
+            };
+            await renameSuggestionRepository.AddAsync(suggestion, cancellationToken);
             await activityLog.WriteAsync(new ActivityEvent(
                 ActivityType.RenameSuggested,
                 $"Suggested {preview.ProposedFileName}",
+                metadata.FullPath), cancellationToken);
+            await activityLog.WriteAsync(new ActivityEvent(
+                ActivityType.MoveSuggested,
+                $"Destination {plan.ProposedDirectory}",
                 metadata.FullPath), cancellationToken);
 
             await queue.MarkCompletedAsync(item.FullPath, cancellationToken);

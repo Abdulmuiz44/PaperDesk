@@ -10,21 +10,21 @@ public sealed class RenamingService : IRenamingService, IRenameSuggestionService
 {
     public Task<RenamePlanDto> BuildSuggestionAsync(DocumentRecord record, CancellationToken cancellationToken)
     {
-        var metadata = new DocumentMetadata(
-            record.OriginalPath,
-            Path.GetFileName(record.OriginalPath),
-            Path.GetExtension(record.OriginalPath).ToLowerInvariant(),
-            0,
-            record.DiscoveredUtc,
-            record.DiscoveredUtc);
+        cancellationToken.ThrowIfCancellationRequested();
 
-        return BuildPreviewAsync(metadata, Path.GetDirectoryName(record.OriginalPath), cancellationToken)
-            .ContinueWith(task => new RenamePlanDto(
-                record.Id,
-                task.Result.ProposedFileName,
-                task.Result.ProposedDirectory,
-                task.Result.Confidence,
-                task.Result.Reason), cancellationToken);
+        var originalPath = Path.GetFullPath(record.CurrentPath ?? record.OriginalPath);
+        var extension = Path.GetExtension(originalPath).ToLowerInvariant();
+        var sourceDirectory = Path.GetDirectoryName(originalPath) ?? Environment.CurrentDirectory;
+        var baseName = BuildBaseName(record);
+        var destination = BuildDestinationDirectory(sourceDirectory, record.DocumentType, record.DiscoveredUtc);
+        var proposedFileName = EnsureUniqueFileName(destination, baseName, extension, originalPath);
+
+        return Task.FromResult(new RenamePlanDto(
+            record.Id,
+            proposedFileName,
+            destination,
+            DetermineConfidence(record),
+            "Template: {date}_{type}_{party}_{amount}; routing by document type."));
     }
 
     public Task<RenameMovePreview> BuildPreviewAsync(DocumentMetadata metadata, string? destinationDirectory, CancellationToken cancellationToken)
@@ -41,7 +41,7 @@ public sealed class RenamingService : IRenamingService, IRenameSuggestionService
             baseName = "Document";
         }
 
-        var datedBaseName = $"{baseName} - {metadata.ModifiedUtc:yyyy-MM-dd}";
+        var datedBaseName = $"{metadata.ModifiedUtc:yyyy-MM-dd}_other_{baseName}";
         var proposedFileName = EnsureUniqueFileName(directory, datedBaseName, metadata.Extension, metadata.FullPath);
         var proposedPath = Path.Combine(directory, proposedFileName);
 
@@ -50,11 +50,85 @@ public sealed class RenamingService : IRenamingService, IRenameSuggestionService
             proposedPath,
             proposedFileName,
             directory,
-            ConfidenceLevel.Low,
-            "Phase 1 filename/date preview; no file operation will be applied.");
+            ConfidenceLevel.Medium,
+            "Template-based suggestion preview.");
 
         return Task.FromResult(preview);
     }
+
+    private static string BuildBaseName(DocumentRecord record)
+    {
+        var dateToken = (record.LastProcessedUtc ?? record.DiscoveredUtc).ToString("yyyy-MM-dd");
+        var typeToken = record.DocumentType.ToString().ToLowerInvariant();
+        var partyToken = ExtractPartyToken(record.ExtractedText) ?? Path.GetFileNameWithoutExtension(record.OriginalPath);
+        var amountToken = ExtractAmountToken(record.ExtractedText) ?? "na";
+
+        return SanitizeFileName($"{dateToken}_{typeToken}_{partyToken}_{amountToken}");
+    }
+
+    private static string BuildDestinationDirectory(string sourceDirectory, DocumentType type, DateTimeOffset discoveredUtc)
+    {
+        var year = discoveredUtc.ToString("yyyy");
+        var typeFolder = type switch
+        {
+            DocumentType.Invoice => "Invoices",
+            DocumentType.Receipt => "Receipts",
+            DocumentType.Statement => "Statements",
+            DocumentType.Contract => "Contracts",
+            DocumentType.Identity => "Identity",
+            _ => "Other"
+        };
+
+        return Path.Combine(sourceDirectory, "Sorted", typeFolder, year);
+    }
+
+    private static string? ExtractPartyToken(string? extractedText)
+    {
+        if (string.IsNullOrWhiteSpace(extractedText))
+        {
+            return null;
+        }
+
+        var firstLine = extractedText
+            .Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .FirstOrDefault();
+
+        if (string.IsNullOrWhiteSpace(firstLine))
+        {
+            return null;
+        }
+
+        return firstLine.Length > 32 ? firstLine[..32] : firstLine;
+    }
+
+    private static string? ExtractAmountToken(string? extractedText)
+    {
+        if (string.IsNullOrWhiteSpace(extractedText))
+        {
+            return null;
+        }
+
+        var match = System.Text.RegularExpressions.Regex.Match(
+            extractedText,
+            @"(?:\$|USD|NGN|EUR|GBP)?\s?\d{1,3}(?:[,\s]\d{3})*(?:\.\d{2})?",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+        if (!match.Success)
+        {
+            return null;
+        }
+
+        var cleaned = match.Value.Replace(" ", string.Empty).Replace(",", string.Empty);
+        return cleaned;
+    }
+
+    private static ConfidenceLevel DetermineConfidence(DocumentRecord record)
+        => record.OcrConfidence switch
+        {
+            ConfidenceLevel.High => ConfidenceLevel.High,
+            ConfidenceLevel.Medium => ConfidenceLevel.Medium,
+            _ => ConfidenceLevel.Low
+        };
 
     private static string SanitizeFileName(string value)
     {

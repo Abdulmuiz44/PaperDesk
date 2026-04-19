@@ -54,8 +54,35 @@ public sealed class DatabaseInitializer
                 original_path,
                 current_path
             );
+
+            CREATE TABLE IF NOT EXISTS rename_suggestions (
+                id TEXT PRIMARY KEY,
+                document_id TEXT NOT NULL,
+                proposed_file_name TEXT NOT NULL,
+                proposed_destination_directory TEXT NULL,
+                confidence INTEGER NOT NULL,
+                reason TEXT NOT NULL,
+                is_approved INTEGER NOT NULL DEFAULT 0,
+                is_skipped INTEGER NOT NULL DEFAULT 0,
+                FOREIGN KEY(document_id) REFERENCES documents(id) ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS ix_rename_suggestions_document_id ON rename_suggestions(document_id);
+            CREATE INDEX IF NOT EXISTS ix_rename_suggestions_approved ON rename_suggestions(is_approved);
             """;
         await command.ExecuteNonQueryAsync(cancellationToken);
+
+        // Backward-compatible migration for older local DBs that predate skip state.
+        try
+        {
+            await using var migration = connection.CreateCommand();
+            migration.CommandText = "ALTER TABLE rename_suggestions ADD COLUMN is_skipped INTEGER NOT NULL DEFAULT 0;";
+            await migration.ExecuteNonQueryAsync(cancellationToken);
+        }
+        catch (SqliteException ex) when (ex.Message.Contains("duplicate column name", StringComparison.OrdinalIgnoreCase))
+        {
+            // Column already exists; no action needed.
+        }
 
         _logger.LogInformation("SQLite schema initialized at {DbPath}", dbPath);
     }

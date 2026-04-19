@@ -144,21 +144,43 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
-                        <TextBlock Text="Pending rename/move previews" FontSize="18" FontWeight="SemiBold" />
+                        <TextBlock Text="Review rename and routing suggestions" FontSize="18" FontWeight="SemiBold" />
                         <TextBlock Grid.Row="1"
                                    Margin="0,8,0,0"
-                                   Text="{Binding QueueCount, StringFormat=Queue items: {0}}"
+                                   Text="{Binding ReviewSuggestions.Count, StringFormat=Pending suggestions: {0}}"
                                    Foreground="#FF4B5563" />
-                        <ListView Grid.Row="2" Margin="0,12,0,0" ItemsSource="{Binding PendingPreviews}">
+                        <ListView Grid.Row="2"
+                                  Margin="0,12,0,0"
+                                  ItemsSource="{Binding ReviewSuggestions}"
+                                  SelectedItem="{Binding SelectedReviewSuggestion, Mode=TwoWay}">
                             <ListView.View>
                                 <GridView>
-                                    <GridViewColumn Width="180" Header="Proposed Name" DisplayMemberBinding="{Binding ProposedFileName}" />
-                                    <GridViewColumn Width="500" Header="Proposed Path" DisplayMemberBinding="{Binding ProposedPath}" />
-                                    <GridViewColumn Width="130" Header="Confidence" DisplayMemberBinding="{Binding Confidence}" />
+                                    <GridViewColumn Width="220" Header="Proposed Name">
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBox Text="{Binding ProposedFileName, UpdateSourceTrigger=PropertyChanged}" />
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Width="380" Header="Destination">
+                                        <GridViewColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBox Text="{Binding ProposedDestinationDirectory, UpdateSourceTrigger=PropertyChanged}" />
+                                            </DataTemplate>
+                                        </GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Width="110" Header="Confidence" DisplayMemberBinding="{Binding Confidence}" />
+                                    <GridViewColumn Width="240" Header="Reason" DisplayMemberBinding="{Binding Reason}" />
                                 </GridView>
                             </ListView.View>
                         </ListView>
+                        <StackPanel Grid.Row="3" Margin="0,12,0,0" Orientation="Horizontal">
+                            <Button Padding="12,6" Margin="0,0,8,0" Click="RefreshReviewQueueClick" Content="Refresh" />
+                            <Button Padding="12,6" Margin="0,0,8,0" Click="ApproveSelectedClick" Content="Approve + Apply" />
+                            <Button Padding="12,6" Click="SkipSelectedClick" Content="Skip" />
+                        </StackPanel>
                     </Grid>
                 </TabItem>
                 <TabItem Header="Search">
