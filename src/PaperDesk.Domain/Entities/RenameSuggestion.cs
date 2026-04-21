@@ -17,4 +17,6 @@ public sealed class RenameSuggestion
     public string Reason { get; init; } = "Heuristic extraction";
 
     public bool IsApproved { get; set; }
+
+    public bool IsSkipped { get; set; }
 }

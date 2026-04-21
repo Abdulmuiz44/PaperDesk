@@ -8,6 +8,8 @@ public interface IDocumentRepository
 
     Task<DocumentRecord?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
 
+    Task<IReadOnlyCollection<DocumentRecord>> ListAllAsync(CancellationToken cancellationToken);
+
     Task<IReadOnlyCollection<DocumentRecord>> GetPendingAsync(CancellationToken cancellationToken);
 
     Task UpdateAsync(DocumentRecord record, CancellationToken cancellationToken);

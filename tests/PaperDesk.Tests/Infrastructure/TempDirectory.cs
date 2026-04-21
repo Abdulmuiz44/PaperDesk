@@ -12,9 +12,26 @@ internal sealed class TempDirectory : IDisposable
 
     public void Dispose()
     {
-        if (Directory.Exists(Path))
+        if (!Directory.Exists(Path))
         {
-            Directory.Delete(Path, recursive: true);
+            return;
+        }
+
+        for (var attempt = 0; attempt < 5; attempt++)
+        {
+            try
+            {
+                Directory.Delete(Path, recursive: true);
+                return;
+            }
+            catch (IOException) when (attempt < 4)
+            {
+                Thread.Sleep(100 * (attempt + 1));
+            }
+            catch (UnauthorizedAccessException) when (attempt < 4)
+            {
+                Thread.Sleep(100 * (attempt + 1));
+            }
         }
     }
 }
