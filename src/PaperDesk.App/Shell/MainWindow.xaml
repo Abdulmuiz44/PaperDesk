@@ -187,6 +187,8 @@
                     <Grid Margin="16">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
 
@@ -204,8 +206,42 @@
                                     Click="SearchClick"
                                     Content="Search" />
                         </Grid>
+                        <Grid Grid.Row="1" Margin="0,10,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="220" />
+                                <ColumnDefinition Width="220" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <ComboBox Grid.Column="0"
+                                      Margin="0,0,8,0"
+                                      ItemsSource="{Binding SearchDocumentTypes}"
+                                      SelectedItem="{Binding SelectedSearchDocumentType, Mode=TwoWay}" />
+                            <ComboBox Grid.Column="1"
+                                      Margin="0,0,8,0"
+                                      ItemsSource="{Binding SearchStatuses}"
+                                      SelectedItem="{Binding SelectedSearchStatus, Mode=TwoWay}" />
+                            <TextBox Grid.Column="2"
+                                     Padding="8,6"
+                                     Text="{Binding SearchSourceFolder, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="Optional source folder path prefix" />
+                        </Grid>
+                        <Grid Grid.Row="2" Margin="0,10,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="220" />
+                                <ColumnDefinition Width="220" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0"
+                                     Margin="0,0,8,0"
+                                     Padding="8,6"
+                                     Text="{Binding SearchFromDate, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="From date (e.g. 2026-04-01)" />
+                            <TextBox Grid.Column="1"
+                                     Padding="8,6"
+                                     Text="{Binding SearchToDate, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="To date (e.g. 2026-04-30)" />
+                        </Grid>
 
-                        <ListView Grid.Row="1"
+                        <ListView Grid.Row="3"
                                   Margin="0,12,0,0"
                                   ItemsSource="{Binding SearchResults}">
                             <ListView.View>
@@ -227,7 +263,53 @@
                     </Grid>
                 </TabItem>
                 <TabItem Header="Duplicates">
-                    <TextBlock Margin="16" Text="Duplicate handling is planned for Phase 3." />
+                    <Grid Margin="16">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <StackPanel Orientation="Horizontal">
+                            <Button Padding="12,6" Margin="0,0,8,0" Click="RefreshDuplicatesClick" Content="Scan Duplicates" />
+                            <Button Padding="12,6" Margin="0,0,8,0" Click="MarkCanonicalClick" Content="Set Canonical" />
+                            <Button Padding="12,6" Click="MoveDuplicatesClick" Content="Move Non-Canonical to Review Folder" />
+                        </StackPanel>
+                        <TextBlock Grid.Row="1"
+                                   Margin="0,10,0,0"
+                                   Text="{Binding DuplicateGroups.Count, StringFormat=Groups found: {0}}"
+                                   Foreground="#FF4B5563" />
+                        <Grid Grid.Row="2" Margin="0,12,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="420" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <ListView Grid.Column="0"
+                                      Margin="0,0,12,0"
+                                      ItemsSource="{Binding DuplicateGroups}"
+                                      SelectedItem="{Binding SelectedDuplicateGroup, Mode=TwoWay}">
+                                <ListView.View>
+                                    <GridView>
+                                        <GridViewColumn Width="80" Header="Type" DisplayMemberBinding="{Binding MatchType}" />
+                                        <GridViewColumn Width="60" Header="Count" DisplayMemberBinding="{Binding Count}" />
+                                        <GridViewColumn Width="240" Header="Reason" DisplayMemberBinding="{Binding Reason}" />
+                                    </GridView>
+                                </ListView.View>
+                            </ListView>
+                            <ListView Grid.Column="1"
+                                      ItemsSource="{Binding DuplicateDocuments}"
+                                      SelectedItem="{Binding SelectedDuplicateDocument, Mode=TwoWay}">
+                                <ListView.View>
+                                    <GridView>
+                                        <GridViewColumn Width="180" Header="File" DisplayMemberBinding="{Binding FileName}" />
+                                        <GridViewColumn Width="280" Header="Path" DisplayMemberBinding="{Binding Path}" />
+                                        <GridViewColumn Width="90" Header="Type" DisplayMemberBinding="{Binding DocumentType}" />
+                                        <GridViewColumn Width="90" Header="Status" DisplayMemberBinding="{Binding Status}" />
+                                        <GridViewColumn Width="220" Header="Hash" DisplayMemberBinding="{Binding Sha256Hash}" />
+                                    </GridView>
+                                </ListView.View>
+                            </ListView>
+                        </Grid>
+                    </Grid>
                 </TabItem>
                 <TabItem Header="Activity Log">
                     <Grid Margin="16">

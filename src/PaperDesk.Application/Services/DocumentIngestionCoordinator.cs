@@ -2,6 +2,7 @@ using PaperDesk.Application.Abstractions;
 using PaperDesk.Domain.Entities;
 using PaperDesk.Domain.Enums;
 using PaperDesk.Domain.ValueObjects;
+using System.Security.Cryptography;
 
 namespace PaperDesk.Application.Services;
 
@@ -46,6 +47,7 @@ public sealed class DocumentIngestionCoordinator(
                 DocumentType = DocumentType.Unknown,
                 ExtractedText = ocrResult.ExtractedText,
                 OcrConfidence = ocrResult.Confidence,
+                Sha256Hash = await ComputeSha256Async(metadata.FullPath, cancellationToken),
                 Status = ProcessingStatus.NeedsReview,
                 LastProcessedUtc = DateTimeOffset.UtcNow
             };
@@ -87,5 +89,24 @@ public sealed class DocumentIngestionCoordinator(
                 item.FullPath), cancellationToken);
             return null;
         }
+    }
+
+    private static async Task<string?> ComputeSha256Async(string filePath, CancellationToken cancellationToken)
+    {
+        if (!File.Exists(filePath))
+        {
+            return null;
+        }
+
+        await using var stream = new FileStream(
+            filePath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.ReadWrite,
+            bufferSize: 81920,
+            FileOptions.Asynchronous | FileOptions.SequentialScan);
+        using var sha256 = SHA256.Create();
+        var hash = await sha256.ComputeHashAsync(stream, cancellationToken);
+        return Convert.ToHexString(hash);
     }
 }

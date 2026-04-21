@@ -1,4 +1,5 @@
 using PaperDesk.Application.Abstractions;
+using PaperDesk.Application.Queries;
 using PaperDesk.Domain.Entities;
 using PaperDesk.Infrastructure.Configuration;
 using PaperDesk.Infrastructure.Persistence;
@@ -39,8 +40,11 @@ public sealed class DocumentIndexService(
     }
 
     public async Task<IReadOnlyCollection<DocumentRecord>> SearchAsync(string query, CancellationToken cancellationToken)
+        => await SearchAsync(new DocumentSearchRequest(query), cancellationToken);
+
+    public async Task<IReadOnlyCollection<DocumentRecord>> SearchAsync(DocumentSearchRequest request, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(query))
+        if (string.IsNullOrWhiteSpace(request.QueryText))
         {
             return Array.Empty<DocumentRecord>();
         }
@@ -49,7 +53,7 @@ public sealed class DocumentIndexService(
         await connection.OpenAsync(cancellationToken);
 
         await using var command = connection.CreateCommand();
-        command.CommandText = """
+        var sql = """
             SELECT
                 d.id,
                 d.original_path,
@@ -64,10 +68,40 @@ public sealed class DocumentIndexService(
             FROM documents_fts f
             JOIN documents d ON d.id = f.id
             WHERE documents_fts MATCH $query
-            ORDER BY bm25(documents_fts), d.discovered_utc DESC
-            LIMIT 100;
             """;
-        command.Parameters.AddWithValue("$query", BuildMatchExpression(query));
+        if (request.DocumentType.HasValue)
+        {
+            sql += " AND d.document_type = $document_type";
+            command.Parameters.AddWithValue("$document_type", (int)request.DocumentType.Value);
+        }
+
+        if (request.Status.HasValue)
+        {
+            sql += " AND d.status = $status";
+            command.Parameters.AddWithValue("$status", (int)request.Status.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.SourceFolder))
+        {
+            sql += " AND (d.current_path LIKE $source_prefix OR d.original_path LIKE $source_prefix)";
+            command.Parameters.AddWithValue("$source_prefix", $"{request.SourceFolder.Trim()}%");
+        }
+
+        if (request.FromDateUtc.HasValue)
+        {
+            sql += " AND d.discovered_utc >= $from_date";
+            command.Parameters.AddWithValue("$from_date", request.FromDateUtc.Value.ToString("O"));
+        }
+
+        if (request.ToDateUtc.HasValue)
+        {
+            sql += " AND d.discovered_utc <= $to_date";
+            command.Parameters.AddWithValue("$to_date", request.ToDateUtc.Value.ToString("O"));
+        }
+
+        sql += " ORDER BY bm25(documents_fts), d.discovered_utc DESC LIMIT 100;";
+        command.CommandText = sql;
+        command.Parameters.AddWithValue("$query", BuildMatchExpression(request.QueryText));
 
         var results = new List<DocumentRecord>();
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);

@@ -43,6 +43,29 @@ public partial class MainWindow : Window
     private async void SearchClick(object sender, RoutedEventArgs e)
         => await ViewModel.SearchAsync(CancellationToken.None);
 
+    private async void RefreshDuplicatesClick(object sender, RoutedEventArgs e)
+        => await ViewModel.RefreshDuplicatesAsync(CancellationToken.None);
+
+    private async void MarkCanonicalClick(object sender, RoutedEventArgs e)
+        => await ViewModel.MarkSelectedDuplicateAsCanonicalAsync(CancellationToken.None);
+
+    private async void MoveDuplicatesClick(object sender, RoutedEventArgs e)
+    {
+        var result = MessageBox.Show(
+            "Move all non-canonical files in this group to the Review Duplicates folder?",
+            "Confirm Duplicate Action",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning,
+            MessageBoxResult.No);
+
+        if (result != MessageBoxResult.Yes)
+        {
+            return;
+        }
+
+        await ViewModel.MoveNonCanonicalDuplicatesAsync(CancellationToken.None);
+    }
+
     private async void RefreshReviewQueueClick(object sender, RoutedEventArgs e)
         => await ViewModel.RefreshReviewQueueAsync(CancellationToken.None);
 

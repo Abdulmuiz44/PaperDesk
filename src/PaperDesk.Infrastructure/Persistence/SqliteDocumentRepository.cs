@@ -126,6 +126,38 @@ public sealed class SqliteDocumentRepository(
         return results;
     }
 
+    public async Task<IReadOnlyCollection<DocumentRecord>> ListAllAsync(CancellationToken cancellationToken)
+    {
+        await using var connection = CreateConnection();
+        await connection.OpenAsync(cancellationToken);
+
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT
+                id,
+                original_path,
+                current_path,
+                document_type,
+                extracted_text,
+                ocr_confidence,
+                sha256_hash,
+                status,
+                discovered_utc,
+                last_processed_utc
+            FROM documents
+            ORDER BY discovered_utc DESC;
+            """;
+
+        var results = new List<DocumentRecord>();
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            results.Add(ReadRecord(reader));
+        }
+
+        return results;
+    }
+
     public Task UpdateAsync(DocumentRecord record, CancellationToken cancellationToken)
         => AddAsync(record, cancellationToken);
 
